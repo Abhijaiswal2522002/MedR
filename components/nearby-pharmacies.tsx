@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Phone } from "lucide-react"
+import { getNearbyPharmacies } from "@/lib/client-api"
 
 interface NearbyPharmacy {
   id: string
@@ -28,8 +29,7 @@ export function NearbyPharmacies({ medicineId }: Props) {
   useEffect(() => {
     const fetchNearbyPharmacies = async () => {
       try {
-        const response = await fetch(`/api/pharmacy/nearby?medicineId=${medicineId}`)
-        const data = await response.json()
+        const data = await getNearbyPharmacies(medicineId)
         setPharmacies(data.pharmacies || [])
       } catch (error) {
         console.error("Error fetching nearby pharmacies:", error)
@@ -92,7 +92,7 @@ export function NearbyPharmacies({ medicineId }: Props) {
                   </div>
 
                   <div className="flex space-x-2">
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => window.open(`tel:${pharmacy.phone}`, "_self")}>
                       <Phone className="h-3 w-3 mr-1" />
                       Call
                     </Button>

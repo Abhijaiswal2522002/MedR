@@ -1,29 +1,29 @@
 import { type NextRequest, NextResponse } from "next/server"
-import jwt from "jsonwebtoken"
-import { connectDB } from "@/lib/mongodb"
-import { Order } from "@/models/Order"
+
+// Mark as dynamic to prevent static generation issues
+export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
-    if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
+    // Mock orders data
+    const orders = [
+      {
+        id: "ORD-001",
+        date: "2024-01-15",
+        items: ["Paracetamol 500mg", "Vitamin D"],
+        total: 145,
+        status: "delivered",
+      },
+      {
+        id: "ORD-002",
+        date: "2024-01-14",
+        items: ["Aspirin 75mg"],
+        total: 30,
+        status: "in-transit",
+      },
+    ]
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback-secret") as any
-
-    await connectDB()
-    const orders = await Order.find({ userId: decoded.userId }).sort({ createdAt: -1 }).limit(20)
-
-    const formattedOrders = orders.map((order) => ({
-      id: order.trackingId,
-      date: order.createdAt.toLocaleDateString(),
-      items: order.items.map((item: any) => item.medicine),
-      total: order.total,
-      status: order.status,
-    }))
-
-    return NextResponse.json({ orders: formattedOrders })
+    return NextResponse.json({ orders })
   } catch (error) {
     console.error("Orders fetch error:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })

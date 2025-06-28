@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Phone, Truck } from "lucide-react"
 import Link from "next/link"
+import { searchMedicines } from "@/lib/client-api"
 
 interface Pharmacy {
   id: string
@@ -36,12 +37,7 @@ export function SearchResults() {
 
       setLoading(true)
       try {
-        const params = new URLSearchParams()
-        params.set("query", query)
-        if (location) params.set("location", location)
-
-        const response = await fetch(`/api/medicine/search?${params.toString()}`)
-        const data = await response.json()
+        const data = await searchMedicines(query, location || undefined)
         setPharmacies(data.pharmacies || [])
       } catch (error) {
         console.error("Error fetching search results:", error)
@@ -54,7 +50,11 @@ export function SearchResults() {
   }, [query, location])
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   if (!query) {
@@ -125,7 +125,7 @@ export function SearchResults() {
 
                 <div className="flex justify-between items-center mt-4 pt-4 border-t">
                   <div className="flex items-center space-x-4">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => window.open(`tel:${pharmacy.phone}`, "_self")}>
                       <Phone className="h-4 w-4 mr-1" />
                       Call
                     </Button>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { getMedicineAlternatives } from "@/lib/client-api"
 
 interface Alternative {
   id: string
@@ -25,8 +26,7 @@ export function AlternativeMedicines({ compound }: Props) {
   useEffect(() => {
     const fetchAlternatives = async () => {
       try {
-        const response = await fetch(`/api/medicine/alternatives?compound=${compound}`)
-        const data = await response.json()
+        const data = await getMedicineAlternatives(compound)
         setAlternatives(data.alternatives || [])
       } catch (error) {
         console.error("Error fetching alternatives:", error)

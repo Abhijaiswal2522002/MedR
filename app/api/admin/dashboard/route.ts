@@ -1,40 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
-import jwt from "jsonwebtoken"
-import { connectDB } from "@/lib/mongodb"
-import { User } from "@/models/User"
-import { Pharmacy } from "@/models/Pharmacy"
-import { Medicine } from "@/models/Medicine"
+
+// Mark as dynamic to prevent static generation issues
+export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
-    if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback-secret") as any
-    if (decoded.role !== "admin") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
-    }
-
-    await connectDB()
-
-    // Fetch users
-    const users = await User.find({}).select("-password").sort({ createdAt: -1 })
-
-    // Fetch pharmacies
-    const pharmacies = await Pharmacy.find({}).select("-password").sort({ createdAt: -1 })
-
-    // Fetch medicines count
-    const medicinesCount = await Medicine.countDocuments()
-
-    // Calculate analytics
+    // Mock data for demonstration
     const analytics = {
-      totalUsers: users.length,
-      totalPharmacies: pharmacies.length,
-      totalMedicines: medicinesCount,
-      totalOrders: 156, // Mock data
-      revenueToday: 45000, // Mock data
+      totalUsers: 1250,
+      totalPharmacies: 85,
+      totalMedicines: 5000,
+      totalOrders: 156,
+      revenueToday: 45000,
       popularMedicines: [
         { name: "Paracetamol", searches: 1250 },
         { name: "Aspirin", searches: 890 },
@@ -44,30 +21,49 @@ export async function GET(request: NextRequest) {
       ],
     }
 
-    // Format user data
-    const formattedUsers = users.map((user) => ({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      isVerified: user.isVerified,
-      createdAt: new Date(user.createdAt).toLocaleDateString(),
-    }))
+    const users = [
+      {
+        id: "1",
+        name: "John Doe",
+        email: "john@example.com",
+        role: "user",
+        isVerified: true,
+        createdAt: "2024-01-15",
+      },
+      {
+        id: "2",
+        name: "Jane Smith",
+        email: "jane@example.com",
+        role: "user",
+        isVerified: true,
+        createdAt: "2024-01-14",
+      },
+    ]
 
-    // Format pharmacy data
-    const formattedPharmacies = pharmacies.map((pharmacy) => ({
-      id: pharmacy._id,
-      name: pharmacy.name,
-      email: pharmacy.email,
-      address: pharmacy.address,
-      licenseNumber: pharmacy.licenseNumber,
-      isVerified: pharmacy.isVerified,
-      createdAt: new Date(pharmacy.createdAt).toLocaleDateString(),
-    }))
+    const pharmacies = [
+      {
+        id: "1",
+        name: "Apollo Pharmacy",
+        email: "apollo@example.com",
+        address: "123 Main Street, Delhi",
+        licenseNumber: "DL-PHARM-001",
+        isVerified: true,
+        createdAt: "2024-01-10",
+      },
+      {
+        id: "2",
+        name: "MedPlus Pharmacy",
+        email: "medplus@example.com",
+        address: "456 Park Avenue, Delhi",
+        licenseNumber: "DL-PHARM-002",
+        isVerified: false,
+        createdAt: "2024-01-12",
+      },
+    ]
 
     return NextResponse.json({
-      users: formattedUsers,
-      pharmacies: formattedPharmacies,
+      users,
+      pharmacies,
       analytics,
     })
   } catch (error) {

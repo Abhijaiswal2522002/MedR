@@ -9,6 +9,7 @@ import { Plus, Package, AlertTriangle, TrendingUp, Users } from "lucide-react"
 import { AddMedicineDialog } from "@/components/add-medicine-dialog"
 import { PharmacyVerificationNotice } from "@/components/pharmacy-verification-notice"
 import { useAuth } from "@/hooks/use-auth"
+import { getPharmacyDashboard } from "@/lib/client-api"
 
 interface InventoryItem {
   id: string
@@ -42,6 +43,7 @@ export function PharmacyDashboard() {
     todayRevenue: 0,
   })
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchDashboardData()
@@ -49,13 +51,14 @@ export function PharmacyDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch("/api/pharmacy/dashboard")
-      const data = await response.json()
+      const data = await getPharmacyDashboard()
       setInventory(data.inventory || [])
       setOrders(data.orders || [])
       setStats(data.stats || {})
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -73,6 +76,16 @@ export function PharmacyDashboard() {
   }
 
   const isVerified = user?.isVerified
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, Clock, Truck, MapPin } from "lucide-react"
 import Link from "next/link"
+import { getUserDashboard } from "@/lib/client-api"
 
 interface RecentSearch {
   id: string
@@ -25,20 +26,21 @@ interface DeliveryRequest {
 export function UserDashboard() {
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
   const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch user data
     fetchDashboardData()
   }, [])
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch("/api/user/dashboard")
-      const data = await response.json()
+      const data = await getUserDashboard()
       setRecentSearches(data.recentSearches || [])
       setDeliveryRequests(data.deliveryRequests || [])
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -55,6 +57,16 @@ export function UserDashboard() {
       default:
         return "bg-gray-100 text-gray-800"
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -78,13 +90,13 @@ export function UserDashboard() {
                   Search Medicine
                 </Link>
               </Button>
-              <Button variant="outline" asChild className="w-full">
+              <Button variant="outline" asChild className="w-full bg-transparent">
                 <Link href="/emergency">
                   <Truck className="mr-2 h-4 w-4" />
                   Emergency Delivery
                 </Link>
               </Button>
-              <Button variant="outline" asChild className="w-full">
+              <Button variant="outline" asChild className="w-full bg-transparent">
                 <Link href="/profile">Profile Settings</Link>
               </Button>
             </CardContent>
