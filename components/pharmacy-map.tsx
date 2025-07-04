@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -77,6 +76,12 @@ export function PharmacyMap() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* Title and Description */}
+      <div className="text-center">
+        <h1 className="text-3xl font-bold mb-2">Find Nearby Pharmacies</h1>
+        <p className="text-gray-600">Locate pharmacies near you and get directions</p>
+      </div>
+
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">

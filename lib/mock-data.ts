@@ -1,14 +1,15 @@
 export interface Medicine {
   id: string
   name: string
-  genericName: string
-  category: string
+  activeCompound: string
+  description: string
+  dosage: string
   manufacturer: string
   price: number
-  description: string
+  category: string
   sideEffects: string[]
-  dosage: string
-  activeCompound: string
+  contraindications: string[]
+  image: string
 }
 
 export interface Pharmacy {
@@ -16,18 +17,16 @@ export interface Pharmacy {
   name: string
   address: string
   phone: string
-  email: string
-  licenseNumber: string
-  isVerified: boolean
   isOpen: boolean
-  rating: number
   distance: number
-  coordinates: [number, number] // [longitude, latitude]
+  latitude: number
+  longitude: number
+  rating: number
   medicines: {
-    medicineId: string
+    name: string
     price: number
-    quantity: number
     inStock: boolean
+    quantity: number
   }[]
 }
 
@@ -37,8 +36,7 @@ export interface User {
   email: string
   phone: string
   address: string
-  role: "user" | "pharmacy" | "admin"
-  isVerified: boolean
+  type: "user" | "pharmacy" | "admin"
 }
 
 export interface Order {
@@ -46,211 +44,147 @@ export interface Order {
   userId: string
   pharmacyId: string
   medicines: {
-    medicineId: string
+    name: string
     quantity: number
     price: number
   }[]
-  totalAmount: number
-  status: "pending" | "confirmed" | "in-transit" | "delivered" | "cancelled"
-  deliveryAddress: string
-  orderDate: string
-  estimatedDelivery: string
+  total: number
+  status: "pending" | "confirmed" | "delivered" | "cancelled"
   trackingId: string
+  createdAt: string
 }
 
 export const mockMedicines: Medicine[] = [
   {
-    id: "med-1",
-    name: "Paracetamol 500mg",
-    genericName: "Paracetamol",
-    category: "Pain Relief",
+    id: "1",
+    name: "Paracetamol",
+    activeCompound: "Paracetamol",
+    description: "Pain reliever and fever reducer",
+    dosage: "500mg",
     manufacturer: "Generic Pharma",
     price: 25,
-    description: "Used for pain relief and fever reduction",
-    sideEffects: ["Nausea", "Stomach upset"],
-    dosage: "1-2 tablets every 4-6 hours",
-    activeCompound: "Paracetamol",
+    category: "Pain Relief",
+    sideEffects: ["Nausea", "Dizziness", "Stomach upset"],
+    contraindications: ["Liver disease", "Alcohol dependency"],
+    image: "/placeholder.svg?height=300&width=300",
   },
   {
-    id: "med-2",
-    name: "Aspirin 75mg",
-    genericName: "Aspirin",
-    category: "Pain Relief",
-    manufacturer: "Bayer",
-    price: 30,
-    description: "Low-dose aspirin for heart protection",
-    sideEffects: ["Stomach irritation", "Bleeding"],
-    dosage: "1 tablet daily",
-    activeCompound: "Acetylsalicylic acid",
-  },
-  {
-    id: "med-3",
-    name: "Ibuprofen 400mg",
-    genericName: "Ibuprofen",
-    category: "Pain Relief",
-    manufacturer: "Advil",
-    price: 45,
-    description: "Anti-inflammatory pain reliever",
-    sideEffects: ["Stomach upset", "Dizziness"],
-    dosage: "1 tablet every 6-8 hours",
+    id: "2",
+    name: "Ibuprofen",
     activeCompound: "Ibuprofen",
+    description: "Anti-inflammatory pain reliever",
+    dosage: "400mg",
+    manufacturer: "MedCorp",
+    price: 35,
+    category: "Pain Relief",
+    sideEffects: ["Stomach irritation", "Headache"],
+    contraindications: ["Kidney disease", "Heart conditions"],
+    image: "/placeholder.svg?height=300&width=300",
   },
   {
-    id: "med-4",
-    name: "Amoxicillin 500mg",
-    genericName: "Amoxicillin",
-    category: "Antibiotics",
-    manufacturer: "GSK",
-    price: 120,
-    description: "Broad-spectrum antibiotic",
-    sideEffects: ["Diarrhea", "Nausea", "Rash"],
-    dosage: "1 capsule 3 times daily",
-    activeCompound: "Amoxicillin",
-  },
-  {
-    id: "med-5",
-    name: "Omeprazole 20mg",
-    genericName: "Omeprazole",
-    category: "Digestive Health",
-    manufacturer: "AstraZeneca",
-    price: 85,
-    description: "Proton pump inhibitor for acid reflux",
-    sideEffects: ["Headache", "Diarrhea"],
-    dosage: "1 capsule daily before breakfast",
-    activeCompound: "Omeprazole",
+    id: "3",
+    name: "Aspirin",
+    activeCompound: "Acetylsalicylic acid",
+    description: "Pain reliever and blood thinner",
+    dosage: "325mg",
+    manufacturer: "PharmaCorp",
+    price: 20,
+    category: "Pain Relief",
+    sideEffects: ["Stomach bleeding", "Ringing in ears"],
+    contraindications: ["Bleeding disorders", "Children under 16"],
+    image: "/placeholder.svg?height=300&width=300",
   },
 ]
 
 export const mockPharmacies: Pharmacy[] = [
   {
-    id: "pharmacy-1",
+    id: "1",
     name: "Apollo Pharmacy",
-    address: "123 Main Street, Connaught Place, New Delhi",
+    address: "123 Main Street, Delhi",
     phone: "+91-9876543210",
-    email: "apollo@example.com",
-    licenseNumber: "DL-PHARM-001",
-    isVerified: true,
     isOpen: true,
-    rating: 4.5,
     distance: 0.8,
-    coordinates: [77.2167, 28.6333],
+    latitude: 28.6139,
+    longitude: 77.209,
+    rating: 4.5,
     medicines: [
-      { medicineId: "med-1", price: 25, quantity: 50, inStock: true },
-      { medicineId: "med-2", price: 30, quantity: 25, inStock: true },
-      { medicineId: "med-3", price: 45, quantity: 15, inStock: true },
+      { name: "Paracetamol", price: 25, inStock: true, quantity: 50 },
+      { name: "Ibuprofen", price: 35, inStock: true, quantity: 30 },
     ],
   },
   {
-    id: "pharmacy-2",
+    id: "2",
     name: "MedPlus Pharmacy",
-    address: "456 Park Avenue, Karol Bagh, New Delhi",
+    address: "456 Park Avenue, Delhi",
     phone: "+91-9876543211",
-    email: "medplus@example.com",
-    licenseNumber: "DL-PHARM-002",
-    isVerified: true,
     isOpen: true,
-    rating: 4.2,
     distance: 1.2,
-    coordinates: [77.195, 28.6519],
+    latitude: 28.6129,
+    longitude: 77.2295,
+    rating: 4.2,
     medicines: [
-      { medicineId: "med-1", price: 28, quantity: 30, inStock: true },
-      { medicineId: "med-4", price: 120, quantity: 10, inStock: true },
-      { medicineId: "med-5", price: 85, quantity: 20, inStock: true },
+      { name: "Paracetamol", price: 30, inStock: true, quantity: 25 },
+      { name: "Aspirin", price: 20, inStock: true, quantity: 40 },
     ],
   },
   {
-    id: "pharmacy-3",
+    id: "3",
     name: "Guardian Pharmacy",
-    address: "789 Health Street, Lajpat Nagar, New Delhi",
+    address: "789 Health Street, Delhi",
     phone: "+91-9876543212",
-    email: "guardian@example.com",
-    licenseNumber: "DL-PHARM-003",
-    isVerified: true,
     isOpen: false,
-    rating: 4.0,
     distance: 2.1,
-    coordinates: [77.2431, 28.5675],
+    latitude: 28.6059,
+    longitude: 77.2177,
+    rating: 4.0,
     medicines: [
-      { medicineId: "med-2", price: 32, quantity: 40, inStock: true },
-      { medicineId: "med-3", price: 42, quantity: 25, inStock: true },
-      { medicineId: "med-5", price: 80, quantity: 15, inStock: true },
-    ],
-  },
-  {
-    id: "pharmacy-4",
-    name: "HealthFirst Pharmacy",
-    address: "321 Wellness Road, Rohini, New Delhi",
-    phone: "+91-9876543213",
-    email: "healthfirst@example.com",
-    licenseNumber: "DL-PHARM-004",
-    isVerified: false,
-    isOpen: true,
-    rating: 3.8,
-    distance: 3.5,
-    coordinates: [77.1025, 28.7041],
-    medicines: [
-      { medicineId: "med-1", price: 24, quantity: 60, inStock: true },
-      { medicineId: "med-4", price: 115, quantity: 8, inStock: true },
+      { name: "Ibuprofen", price: 32, inStock: true, quantity: 20 },
+      { name: "Aspirin", price: 22, inStock: false, quantity: 0 },
     ],
   },
 ]
 
 export const mockUsers: User[] = [
   {
-    id: "user-1",
+    id: "1",
     name: "John Doe",
     email: "john@example.com",
-    phone: "+91-9876543214",
+    phone: "+91-9876543213",
     address: "123 User Street, Delhi",
-    role: "user",
-    isVerified: true,
+    type: "user",
   },
   {
-    id: "user-2",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    phone: "+91-9876543215",
-    address: "456 Customer Avenue, Delhi",
-    role: "user",
-    isVerified: true,
-  },
-  {
-    id: "admin-1",
-    name: "Admin User",
-    email: "admin@medroute.com",
-    phone: "+91-9876543216",
-    address: "789 Admin Plaza, Delhi",
-    role: "admin",
-    isVerified: true,
+    id: "2",
+    name: "Apollo Admin",
+    email: "admin@apollo.com",
+    phone: "+91-9876543210",
+    address: "123 Main Street, Delhi",
+    type: "pharmacy",
   },
 ]
 
 export const mockOrders: Order[] = [
   {
-    id: "order-1",
-    userId: "user-1",
-    pharmacyId: "pharmacy-1",
-    medicines: [
-      { medicineId: "med-1", quantity: 2, price: 25 },
-      { medicineId: "med-2", quantity: 1, price: 30 },
-    ],
-    totalAmount: 80,
+    id: "1",
+    userId: "1",
+    pharmacyId: "1",
+    medicines: [{ name: "Paracetamol", quantity: 2, price: 25 }],
+    total: 50,
     status: "delivered",
-    deliveryAddress: "123 User Street, Delhi",
-    orderDate: "2024-01-15T10:30:00Z",
-    estimatedDelivery: "2024-01-15T14:30:00Z",
-    trackingId: "TRK-001",
+    trackingId: "TRK001",
+    createdAt: "2024-01-15T10:30:00Z",
   },
   {
-    id: "order-2",
-    userId: "user-1",
-    pharmacyId: "pharmacy-2",
-    medicines: [{ medicineId: "med-4", quantity: 1, price: 120 }],
-    totalAmount: 120,
-    status: "in-transit",
-    deliveryAddress: "123 User Street, Delhi",
-    orderDate: "2024-01-16T09:15:00Z",
-    estimatedDelivery: "2024-01-16T13:15:00Z",
-    trackingId: "TRK-002",
+    id: "2",
+    userId: "1",
+    pharmacyId: "2",
+    medicines: [
+      { name: "Ibuprofen", quantity: 1, price: 35 },
+      { name: "Aspirin", quantity: 3, price: 20 },
+    ],
+    total: 95,
+    status: "pending",
+    trackingId: "TRK002",
+    createdAt: "2024-01-16T14:20:00Z",
   },
 ]

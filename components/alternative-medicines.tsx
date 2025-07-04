@@ -1,41 +1,37 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import { getMedicineAlternatives } from "@/lib/client-api"
+import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
+import { clientApi } from "@/lib/client-api"
+import type { Medicine } from "@/lib/mock-data"
 
-interface Alternative {
-  id: string
-  name: string
-  manufacturer: string
-  price: number
-  availability: number
-}
-
-interface Props {
+interface AlternativeMedicinesProps {
   compound: string
 }
 
-export function AlternativeMedicines({ compound }: Props) {
-  const [alternatives, setAlternatives] = useState<Alternative[]>([])
+export function AlternativeMedicines({ compound }: AlternativeMedicinesProps) {
+  const [alternatives, setAlternatives] = useState<Medicine[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchAlternatives = async () => {
       try {
-        const data = await getMedicineAlternatives(compound)
-        setAlternatives(data.alternatives || [])
+        setLoading(true)
+        const { alternatives } = await clientApi.getAlternatives(compound)
+        setAlternatives(alternatives)
       } catch (error) {
-        console.error("Error fetching alternatives:", error)
+        console.error("Failed to fetch alternatives:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchAlternatives()
+    if (compound) {
+      fetchAlternatives()
+    }
   }, [compound])
 
   if (loading) {
@@ -45,7 +41,9 @@ export function AlternativeMedicines({ compound }: Props) {
           <CardTitle>Alternative Medicines</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Loading alternatives...</p>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
         </CardContent>
       </Card>
     )
@@ -55,34 +53,31 @@ export function AlternativeMedicines({ compound }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>Alternative Medicines</CardTitle>
-        <p className="text-sm text-gray-600">Other medicines with the same active compound: {compound}</p>
       </CardHeader>
       <CardContent>
-        {alternatives.length === 0 ? (
-          <p className="text-gray-500">No alternatives found.</p>
-        ) : (
-          <div className="space-y-4">
-            {alternatives.map((alt) => (
-              <div key={alt.id} className="flex justify-between items-center p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">{alt.name}</h4>
-                  <p className="text-sm text-gray-500">{alt.manufacturer}</p>
-                  <div className="flex items-center mt-1">
-                    <Badge variant={alt.availability > 0 ? "default" : "secondary"}>
-                      {alt.availability > 0 ? `${alt.availability} stores` : "Out of stock"}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">₹{alt.price}</p>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={`/search?query=${alt.name}`}>Find Stores</Link>
-                  </Button>
+        <div className="space-y-4">
+          {alternatives.map((medicine) => (
+            <div key={medicine.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex-1">
+                <h3 className="font-semibold">{medicine.name}</h3>
+                <p className="text-sm text-gray-600">{medicine.description}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="secondary">{medicine.dosage}</Badge>
+                  <Badge variant="outline">{medicine.manufacturer}</Badge>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="text-right">
+                <p className="font-bold text-lg">₹{medicine.price}</p>
+                <Button size="sm" className="mt-2">
+                  View Details
+                </Button>
+              </div>
+            </div>
+          ))}
+          {alternatives.length === 0 && (
+            <p className="text-center text-gray-500 py-8">No alternative medicines found for {compound}.</p>
+          )}
+        </div>
       </CardContent>
     </Card>
   )

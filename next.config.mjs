@@ -2,15 +2,17 @@
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
-  images: {
-    unoptimized: true,
-  },
+  skipTrailingSlashRedirect: true,
+  distDir: 'dist',
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    unoptimized: true
+  }
 }
 
 export default nextConfig

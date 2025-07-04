@@ -1,46 +1,48 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, Clock, Truck, MapPin } from "lucide-react"
-import Link from "next/link"
-import { getUserDashboard } from "@/lib/client-api"
-
-interface RecentSearch {
-  id: string
-  medicine: string
-  location: string
-  timestamp: string
-}
-
-interface DeliveryRequest {
-  id: string
-  medicine: string
-  pharmacy: string
-  status: "pending" | "confirmed" | "in-transit" | "delivered"
-  estimatedTime: string
-}
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Package, Clock, CheckCircle, XCircle, User, MapPin, Phone, Mail, Loader2 } from "lucide-react"
+import { clientApi } from "@/lib/client-api"
+import type { Order, User as UserType } from "@/lib/mock-data"
 
 export function UserDashboard() {
-  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
-  const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [profile, setProfile] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        const { orders, profile } = await clientApi.getUserDashboard("1") // Mock user ID
+        setOrders(orders)
+        setProfile(profile)
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchDashboardData()
   }, [])
 
-  const fetchDashboardData = async () => {
-    try {
-      const data = await getUserDashboard()
-      setRecentSearches(data.recentSearches || [])
-      setDeliveryRequests(data.deliveryRequests || [])
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-    } finally {
-      setLoading(false)
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Clock className="h-4 w-4" />
+      case "confirmed":
+        return <Package className="h-4 w-4" />
+      case "delivered":
+        return <CheckCircle className="h-4 w-4" />
+      case "cancelled":
+        return <XCircle className="h-4 w-4" />
+      default:
+        return <Clock className="h-4 w-4" />
     }
   }
 
@@ -50,10 +52,10 @@ export function UserDashboard() {
         return "bg-yellow-100 text-yellow-800"
       case "confirmed":
         return "bg-blue-100 text-blue-800"
-      case "in-transit":
-        return "bg-purple-100 text-purple-800"
       case "delivered":
         return "bg-green-100 text-green-800"
+      case "cancelled":
+        return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -61,114 +63,70 @@ export function UserDashboard() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading dashboard...</span>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Manage your medicine searches and deliveries</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-gray-600">Welcome back, {profile?.name}!</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Quick Actions */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button asChild className="w-full">
-                <Link href="/search">
-                  <Search className="mr-2 h-4 w-4" />
-                  Search Medicine
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href="/emergency">
-                  <Truck className="mr-2 h-4 w-4" />
-                  Emergency Delivery
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href="/profile">Profile Settings</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <Tabs defaultValue="orders" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="orders">My Orders</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+        </TabsList>
 
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Recent Searches */}
+        <TabsContent value="orders" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Clock className="mr-2 h-5 w-5" />
-                Recent Searches
-              </CardTitle>
-              <CardDescription>Your recent medicine searches</CardDescription>
+              <CardTitle>Recent Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              {recentSearches.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No recent searches. Start by searching for a medicine.</p>
-              ) : (
-                <div className="space-y-3">
-                  {recentSearches.map((search) => (
-                    <div key={search.id} className="flex justify-between items-center p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{search.medicine}</p>
-                        <p className="text-sm text-gray-500 flex items-center">
-                          <MapPin className="mr-1 h-3 w-3" />
-                          {search.location}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">{search.timestamp}</p>
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href={`/search?query=${search.medicine}&location=${search.location}`}>
-                            Search Again
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+              {orders.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500">No orders found</p>
+                  <Button className="mt-4">Start Shopping</Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Delivery Requests */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Truck className="mr-2 h-5 w-5" />
-                Delivery Requests
-              </CardTitle>
-              <CardDescription>Track your medicine delivery requests</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {deliveryRequests.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No delivery requests yet.</p>
               ) : (
-                <div className="space-y-3">
-                  {deliveryRequests.map((request) => (
-                    <div key={request.id} className="p-4 border rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
                         <div>
-                          <p className="font-medium">{request.medicine}</p>
-                          <p className="text-sm text-gray-500">{request.pharmacy}</p>
+                          <h3 className="font-semibold">Order #{order.id}</h3>
+                          <p className="text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</p>
                         </div>
-                        <Badge className={getStatusColor(request.status)}>{request.status.replace("-", " ")}</Badge>
+                        <div className="text-right">
+                          <Badge className={getStatusColor(order.status)}>
+                            {getStatusIcon(order.status)}
+                            <span className="ml-1 capitalize">{order.status}</span>
+                          </Badge>
+                          <p className="text-lg font-bold mt-1">₹{order.total}</p>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-gray-500">ETA: {request.estimatedTime}</p>
-                        <Button size="sm" variant="outline">
+
+                      <div className="space-y-2">
+                        {order.medicines.map((medicine, index) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span>
+                              {medicine.name} x {medicine.quantity}
+                            </span>
+                            <span>₹{medicine.price * medicine.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex justify-between items-center mt-4 pt-3 border-t">
+                        <p className="text-sm text-gray-600">Tracking ID: {order.trackingId}</p>
+                        <Button variant="outline" size="sm">
                           Track Order
                         </Button>
                       </div>
@@ -178,8 +136,57 @@ export function UserDashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {profile && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">{profile.name}</p>
+                      <p className="text-sm text-gray-600">Full Name</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">{profile.email}</p>
+                      <p className="text-sm text-gray-600">Email Address</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">{profile.phone}</p>
+                      <p className="text-sm text-gray-600">Phone Number</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">{profile.address}</p>
+                      <p className="text-sm text-gray-600">Address</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button>Edit Profile</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

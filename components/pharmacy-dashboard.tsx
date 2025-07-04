@@ -1,275 +1,208 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Package, AlertTriangle, TrendingUp, Users } from "lucide-react"
+import { Package, Plus, TrendingUp, Clock, CheckCircle, Loader2 } from "lucide-react"
 import { AddMedicineDialog } from "@/components/add-medicine-dialog"
 import { PharmacyVerificationNotice } from "@/components/pharmacy-verification-notice"
-import { useAuth } from "@/hooks/use-auth"
-import { getPharmacyDashboard } from "@/lib/client-api"
-
-interface InventoryItem {
-  id: string
-  medicine: {
-    name: string
-    activeCompound: string
-  }
-  quantity: number
-  price: number
-  expiryDate: string
-  lowStock: boolean
-}
-
-interface Order {
-  id: string
-  customerName: string
-  medicine: string
-  quantity: number
-  status: "pending" | "confirmed" | "delivered"
-  timestamp: string
-}
+import { clientApi } from "@/lib/client-api"
+import type { Order, Medicine } from "@/lib/mock-data"
 
 export function PharmacyDashboard() {
-  const { user } = useAuth()
-  const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [orders, setOrders] = useState<Order[]>([])
-  const [stats, setStats] = useState({
-    totalMedicines: 0,
-    lowStockItems: 0,
-    pendingOrders: 0,
-    todayRevenue: 0,
-  })
-  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [inventory, setInventory] = useState<(Medicine & { stock: number })[]>([])
   const [loading, setLoading] = useState(true)
+  const [isVerified] = useState(false) // Mock verification status
 
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        const { orders, inventory } = await clientApi.getPharmacyDashboard("1") // Mock pharmacy ID
+        setOrders(orders)
+        setInventory(inventory)
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchDashboardData()
   }, [])
 
-  const fetchDashboardData = async () => {
-    try {
-      const data = await getPharmacyDashboard()
-      setInventory(data.inventory || [])
-      setOrders(data.orders || [])
-      setStats(data.stats || {})
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-    } finally {
-      setLoading(false)
-    }
+  const stats = {
+    totalOrders: orders.length,
+    pendingOrders: orders.filter((o) => o.status === "pending").length,
+    completedOrders: orders.filter((o) => o.status === "delivered").length,
+    totalRevenue: orders.reduce((sum, order) => sum + order.total, 0),
   }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "confirmed":
-        return "bg-blue-100 text-blue-800"
-      case "delivered":
-        return "bg-green-100 text-green-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const isVerified = user?.isVerified
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading dashboard...</span>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Pharmacy Dashboard</h1>
-        <p className="text-gray-600">Manage your inventory and orders</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Pharmacy Dashboard</h1>
+        <AddMedicineDialog />
       </div>
 
-      <PharmacyVerificationNotice />
+      {!isVerified && <PharmacyVerificationNotice />}
 
       {/* Stats Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Medicines</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalMedicines}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                <p className="text-2xl font-bold">{stats.totalOrders}</p>
+              </div>
+              <Package className="h-8 w-8 text-blue-600" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.lowStockItems}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending Orders</p>
+                <p className="text-2xl font-bold">{stats.pendingOrders}</p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Completed</p>
+                <p className="text-2xl font-bold">{stats.completedOrders}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue Today</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">₹{stats.todayRevenue}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Revenue</p>
+                <p className="text-2xl font-bold">₹{stats.totalRevenue}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-600" />
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="inventory" className="space-y-6">
+      <Tabs defaultValue="orders" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inventory" className="space-y-6">
+        <TabsContent value="orders">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Medicine Inventory</CardTitle>
-                  <CardDescription>Manage your medicine stock</CardDescription>
+              <CardTitle>Recent Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {orders.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500">No orders yet</p>
                 </div>
-                <Button onClick={() => setShowAddDialog(true)} disabled={!isVerified}>
-                  <Plus className="mr-2 h-4 w-4" />
+              ) : (
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold">Order #{order.id}</h3>
+                          <p className="text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={order.status === "pending" ? "default" : "secondary"}>{order.status}</Badge>
+                          <p className="text-lg font-bold mt-1">₹{order.total}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {order.medicines.map((medicine, index) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span>
+                              {medicine.name} x {medicine.quantity}
+                            </span>
+                            <span>₹{medicine.price * medicine.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex justify-end mt-4 pt-3 border-t">
+                        <Button size="sm">Process Order</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inventory">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Medicine Inventory</CardTitle>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
                   Add Medicine
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {!isVerified ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Inventory management will be available after verification</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {inventory.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center p-4 border rounded-lg">
+              <div className="space-y-4">
+                {inventory.map((medicine) => (
+                  <div key={medicine.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-medium">{item.medicine.name}</h4>
-                        <p className="text-sm text-gray-500">{item.medicine.activeCompound}</p>
-                        <div className="flex items-center mt-1 space-x-2">
-                          <Badge variant={item.lowStock ? "destructive" : "default"}>{item.quantity} in stock</Badge>
-                          {item.lowStock && (
-                            <Badge variant="outline" className="text-orange-600">
-                              Low Stock
-                            </Badge>
-                          )}
+                        <h3 className="font-semibold">{medicine.name}</h3>
+                        <p className="text-sm text-gray-600">{medicine.description}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="outline">{medicine.dosage}</Badge>
+                          <Badge variant="secondary">{medicine.category}</Badge>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">₹{item.price}</p>
-                        <p className="text-xs text-gray-500">Expires: {item.expiryDate}</p>
-                        <div className="flex space-x-2 mt-2">
-                          <Button size="sm" variant="outline">
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            Restock
-                          </Button>
-                        </div>
+                        <p className="text-lg font-bold">₹{medicine.price}</p>
+                        <p className="text-sm text-gray-600">Stock: {medicine.stock}</p>
+                        <Badge variant={medicine.stock > 10 ? "default" : "destructive"}>
+                          {medicine.stock > 10 ? "In Stock" : "Low Stock"}
+                        </Badge>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="orders" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>Manage customer orders and deliveries</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!isVerified ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Order management will be available after verification</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div key={order.id} className="flex justify-between items-center p-4 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">{order.customerName}</h4>
-                        <p className="text-sm text-gray-500">
-                          {order.medicine} × {order.quantity}
-                        </p>
-                        <p className="text-xs text-gray-400">{order.timestamp}</p>
-                      </div>
-                      <div className="text-right">
-                        <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                        <div className="flex space-x-2 mt-2">
-                          {order.status === "pending" && (
-                            <>
-                              <Button size="sm" variant="outline">
-                                Accept
-                              </Button>
-                              <Button size="sm" variant="destructive">
-                                Decline
-                              </Button>
-                            </>
-                          )}
-                          {order.status === "confirmed" && <Button size="sm">Mark Delivered</Button>}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-              <CardDescription>View your pharmacy performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!isVerified ? (
-                <div className="text-center py-8 text-gray-500">
-                  <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Analytics will be available after verification</p>
-                </div>
-              ) : (
-                <p className="text-gray-500">Analytics dashboard coming soon...</p>
-              )}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      <AddMedicineDialog open={showAddDialog} onOpenChange={setShowAddDialog} onSuccess={fetchDashboardData} />
     </div>
   )
 }

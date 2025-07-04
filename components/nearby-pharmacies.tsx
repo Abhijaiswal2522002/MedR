@@ -1,44 +1,37 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Phone } from "lucide-react"
-import { getNearbyPharmacies } from "@/lib/client-api"
+import { Button } from "@/components/ui/button"
+import { MapPin, Phone, Clock, Star, Loader2 } from "lucide-react"
+import { clientApi } from "@/lib/client-api"
+import type { Pharmacy } from "@/lib/mock-data"
 
-interface NearbyPharmacy {
-  id: string
-  name: string
-  address: string
-  distance: number
-  phone: string
-  isOpen: boolean
-  hasStock: boolean
-  price: number
-}
-
-interface Props {
+interface NearbyPharmaciesProps {
   medicineId: string
 }
 
-export function NearbyPharmacies({ medicineId }: Props) {
-  const [pharmacies, setPharmacies] = useState<NearbyPharmacy[]>([])
+export function NearbyPharmacies({ medicineId }: NearbyPharmaciesProps) {
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchNearbyPharmacies = async () => {
+    const fetchPharmacies = async () => {
       try {
-        const data = await getNearbyPharmacies(medicineId)
-        setPharmacies(data.pharmacies || [])
+        setLoading(true)
+        const { pharmacies } = await clientApi.getNearbyPharmacies(medicineId)
+        setPharmacies(pharmacies)
       } catch (error) {
-        console.error("Error fetching nearby pharmacies:", error)
+        console.error("Failed to fetch pharmacies:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchNearbyPharmacies()
+    if (medicineId) {
+      fetchPharmacies()
+    }
   }, [medicineId])
 
   if (loading) {
@@ -48,7 +41,9 @@ export function NearbyPharmacies({ medicineId }: Props) {
           <CardTitle>Nearby Pharmacies</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Loading nearby pharmacies...</p>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
         </CardContent>
       </Card>
     )
@@ -58,51 +53,64 @@ export function NearbyPharmacies({ medicineId }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>Nearby Pharmacies</CardTitle>
-        <p className="text-sm text-gray-600">Pharmacies with this medicine in stock</p>
       </CardHeader>
       <CardContent>
-        {pharmacies.length === 0 ? (
-          <p className="text-gray-500">No nearby pharmacies found with this medicine.</p>
-        ) : (
-          <div className="space-y-4">
-            {pharmacies.map((pharmacy) => (
-              <div key={pharmacy.id} className="p-4 border rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h4 className="font-medium">{pharmacy.name}</h4>
-                    <p className="text-sm text-gray-500 flex items-center">
-                      <MapPin className="mr-1 h-3 w-3" />
-                      {pharmacy.address}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={pharmacy.isOpen ? "default" : "secondary"}>
-                      {pharmacy.isOpen ? "Open" : "Closed"}
-                    </Badge>
-                    <p className="text-xs text-gray-500 mt-1">{pharmacy.distance.toFixed(1)} km away</p>
+        <div className="space-y-4">
+          {pharmacies.map((pharmacy) => (
+            <div key={pharmacy.id} className="border rounded-lg p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-lg">{pharmacy.name}</h3>
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <MapPin className="h-4 w-4" />
+                    {pharmacy.address}
                   </div>
                 </div>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-4">
-                    <Badge variant={pharmacy.hasStock ? "default" : "destructive"}>
-                      {pharmacy.hasStock ? "In Stock" : "Out of Stock"}
-                    </Badge>
-                    {pharmacy.hasStock && <span className="font-semibold">₹{pharmacy.price}</span>}
+                <div className="text-right">
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm">{pharmacy.rating}</span>
                   </div>
-
-                  <div className="flex space-x-2">
-                    <Button size="sm" variant="outline" onClick={() => window.open(`tel:${pharmacy.phone}`, "_self")}>
-                      <Phone className="h-3 w-3 mr-1" />
-                      Call
-                    </Button>
-                    {pharmacy.hasStock && <Button size="sm">Request Delivery</Button>}
-                  </div>
+                  <Badge variant={pharmacy.isOpen ? "default" : "secondary"}>
+                    <Clock className="h-3 w-3 mr-1" />
+                    {pharmacy.isOpen ? "Open" : "Closed"}
+                  </Badge>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <Phone className="h-4 w-4" />
+                    {pharmacy.phone}
+                  </div>
+                  <span className="text-sm text-gray-600">{pharmacy.distance} km away</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Phone className="h-4 w-4 mr-1" />
+                    Call
+                  </Button>
+                  <Button size="sm">Order Now</Button>
+                </div>
+              </div>
+
+              {pharmacy.medicines.length > 0 && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-sm font-medium mb-2">Available medicines:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {pharmacy.medicines.map((medicine, index) => (
+                      <Badge key={index} variant="outline">
+                        {medicine.name} - ₹{medicine.price}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          {pharmacies.length === 0 && <p className="text-center text-gray-500 py-8">No nearby pharmacies found.</p>}
+        </div>
       </CardContent>
     </Card>
   )
